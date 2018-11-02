@@ -109,7 +109,7 @@ mod ENFORCEMENT is
 ---	sorts U Factor .
 	sort System .
 ---	subsorts Condition ACond TCond < Factor .
-	subsorts Manager GoverningPolicys Configuration AdaptionPolicys Event < System .
+	subsorts Manager GoverningPolicys ConfigurationName AdaptionPolicys Event < System .
 
 	op keep : Environment -> System .
 	op [_] : Action -> System .
@@ -137,6 +137,7 @@ mod ENFORCEMENT is
  			M[enforcement] (ReqGoverningPolicy(C))C (ReqAdaptionPolicy(C))E(0)
  				 [termination]keep(envir)Reseverse(C') .
 
+---First triggered natural event
     crl [NPE2-trigger-nature] : 
     		M[enforcement](p1,GP[o(N1),E(N2),cond,A],p2) E(0)
     					C[termination]keep(envir)
@@ -144,7 +145,7 @@ mod ENFORCEMENT is
  				 		C[A] keep(set(E(N2)))
 		    if cond == True /\  N2 =/= 0 /\ N1 == 1 .
   
-
+---Triggered human event
  	crl [NPE2-enforce-person] : 
  			M[enforcement](p1,GP[o(N1),E(N2),cond,A],p2)E(NE1)
  								C[A'] keep(envir)
@@ -152,6 +153,7 @@ mod ENFORCEMENT is
  				 				C[A] keep(envir)
  			if cond == envir /\ N1 > 1 /\  N2 =/= 0 /\ A' =/= termination .
 
+---Triggered nature event
     crl [NPE2-enfore-nature] : 
     		M[enforcement](p1,GP[o(N1),E(N2),cond,A],p2)E(NE1)
     					C[A']keep(envir)
@@ -159,6 +161,7 @@ mod ENFORCEMENT is
  				 		C[A] keep(set(E(N2))) 
  			if cond == True /\  N2 =/= 0 /\ N1 == 1 .
 
+---Trigger dependent environment variable event
  	crl [NPE2-enfore-nature-rely] : 
  			M[enforcement](p1,GP[o(N1),E(N2),cond,A],p2)E(NE1)
     					C[A']keep(envir)
@@ -166,6 +169,7 @@ mod ENFORCEMENT is
  				 		C[A] keep(set(E(N2))) 
  			if cond == envir /\  N2 =/= 0 /\ N1 == 1 .		
 
+---Suspend operation
  	crl [NPE3-pause] : 
  			M[enforcement] (p1,GP[o(N1),E(N2),cond,A],p2)E(NE1)
  				 				C[A'] keep(envir)
@@ -173,6 +177,7 @@ mod ENFORCEMENT is
  				 				C[termination] keep(envir) 
  			if N2 == 0 /\ cond == True /\ N1 == 0 /\ A == termination /\ A' =/= termination . 
 
+---Non-deterministic choice
  	rl [NPE4] : 
  			M[enforcement] (p1,GP[o(N1),E(N2),cond,A],p2)
  				 				C[A + B] keep(envir)
@@ -186,6 +191,7 @@ mod ENFORCEMENT is
  				 				C[B] keep(envir) 
  			if A == termination .
 
+---Conditional selection
  	crl [NPE6] : 
  			M[enforcement] (p1,GP[o(N1),E(N2),cond,A],p2)
  								C[do[w ? A,B]] 
@@ -201,21 +207,10 @@ mod ENFORCEMENT is
  			if w == false .
 
 --- crl [NPE8] : M[enforcement] {p,R} C[A || B] => M[enforcement] {p,R} C[A' || B] if A == A' .
-  	crl [NPE9] : 
-  			M[enforcement] (p1,GP[o(N1),E(N2),cond,A],p2)
- 								C[do[w ? A,B]] 
- 		=>  M[enforcement] (p1,GP[o(N1),E(N2),cond,A],p2) 
- 								C[A] 
- 			if w == true .
 
 --- rl [NPE10] : M[enforcement] {p,R} C[A -> B] => M[enforcement] {p,R} C[A' -> B] .
-  	crl [NPE11] : 
-  			M[enforcement] (p1,GP[o(N1),E(N2),cond,A],p2) 
- 								C[do[w ? A,B]] 
- 		=> M[enforcement] (p1,GP[o(N1),E(N2),cond,A],p2) 
- 								C[B] 
- 			if w == false .
-	
+
+---stop	
  	rl [NPE12] : 
  			M[enforcement](p1,GP[o(N1),E(N2),cond,A],p2)E(0)
 				 				C[termination] keep(envir)
@@ -247,6 +242,7 @@ mod LOOSEMODE is
 	var astate : AState .
 	var envir : Environment .
 
+---Switch to Loose Adaption
 	crl [LA1] : 
 			M[enforcement]C(AP1 & AP(D)[E(N1),tcond,acond,type,o(N2)] & AP2)
 				[A] Reseverse(C')keep(envir) E(NE1)
@@ -255,6 +251,7 @@ mod LOOSEMODE is
 				[A]Reseverse(C)keep(envir) E(N1)
 			if type == Loose /\ tcond == T /\ N2 == 2 /\ N1 =/= 0 /\ A =/= deadlocka /\ A =/= termination .
 
+---Complete Loose Adaption and switch to enforcement
 	crl [LA2] : 
 			M[loose] C (GP)(AP1 & AP(D)[E(N1),tcond,acond,type,o(N2)] & AP2)
 				[A] Reseverse(C')keep(envir) E(N1)
@@ -271,6 +268,7 @@ mod LOOSEMODE is
 				[termination] Reseverse(C') keep(envir)E(0)
 			if acond == envir .
 
+---Conditionally switch to loose mode
 	crl [LA6] :
 			M[enforcement]C(AP1 & AP(choice[view ? D,D'])[E(N1),tcond,acond,type,o(N2)] & AP2) 
 				Reseverse(C')[A]keep(envir)E(NE1)
@@ -319,8 +317,8 @@ mod LOOSEMODE is
 		    	[termination] Reseverse(C') keep(envir)E(0)
 	   	    if acond == envir .
 
-
-	crl [LA3-envir] : 
+---Unsatisfied condition cannot be switched to enforcement
+	crl [LA3-enforce-nature-rely] : 
 			M[loose]C (p1,GP[o(N1),E(N2),cond,A],p2) 
 				(AP1 & AP(D)[E(N3),tcond,acond,type,o(N4)] & AP2)
 				[A'] Reseverse(C') keep(envir)E(NE1)
@@ -331,8 +329,29 @@ mod LOOSEMODE is
  			if acond =/= envir /\ A =/= deadlocka /\ A =/= termination 
  			/\ N2 =/= 0 /\ N1 == 1 /\ cond == envir .
 
+ 	crl [LA3-enforce-nature] : 
+ 			M[loose]C(p1,GP[o(N1),E(N2),cond,A],p2)
+ 					(AP1 & AP(D)[E(N3),tcond,acond,type,o(N4)] & AP2)
+ 					[A']keep(envir)Reseverse(C)E(NE1)
+ 		=> 
+ 			M[loose]C(p1,GP[o(N1),E(N2),cond,A],p2)
+ 				(AP1 & AP(D)[E(N3),tcond,acond,type,o(N4)] & AP2)
+ 				[A] keep(set(E(N2)))Reseverse(C)E(N2)
+ 		if acond =/= envir /\ A =/= deadlocka /\ A =/= termination 
+ 			/\ N2 =/= 0 /\ N1 == 1 /\ cond == True .
 
- 
+ 	crl [LA3-enforce-person] : 
+ 			M[loose]C(p1,GP[o(N1),E(N2),cond,A],p2)keep(envir)
+ 					(AP1 & AP(D)[E(N1),tcond,acond,type,o(N2)] & AP2)
+ 					[A']Reseverse(C) E(NE1)
+ 		=> 
+ 			M[loose]C (p1,GP[o(N1),E(N2),cond,A],p2)
+ 				(AP1 & AP(D)[E(N1),tcond,acond,type,o(N2)] & AP2)
+ 				[A] Reseverse(C)keep(envir) E(N2)
+ 		if acond =/= envir /\ A =/= deadlocka /\ A =/= termination 
+ 			/\ N2 =/= 0 /\ N1 > 1 /\ cond == envir .
+			
+
  	crl [LA5] :  
  			M[loose] (p1,GP[o(N1),E(N2),cond,A],p2)
  				 				C[A + B] keep(envir)
@@ -378,6 +397,7 @@ mod STRICTMODE is
 	var type : Type .
 	var envir : Environment .
 
+---Switch to Strict Adaption
  	crl [SA1] : 
  			M[enforcement] C (AP1 & AP(D)[E(N1),tcond,acond,type,o(N2)] & AP2)
  				[A]Reseverse(C')keep(envir) E(NE1)
@@ -386,6 +406,7 @@ mod STRICTMODE is
 				[termination] Reseverse(C)keep(envir)E(N1)
 			if type == Strict /\ tcond == T /\ N2 == 1 /\ N1 =/= 0 /\ A =/= deadlocka .
 
+---Complete Strict Adaption
 	crl [SA2] : 
 			M[strict]D(GP)(AP1 & AP(D)[E(N1),tcond,acond,type,o(N2)] & AP2)
 				[termination]keep(envir)Reseverse(C') E(NE1)
