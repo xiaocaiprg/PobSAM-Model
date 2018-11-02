@@ -217,7 +217,7 @@ mod ENFORCEMENT is
  			if w == false .
 	
  	rl [NPE12] : 
- 			M[enforcement](p1,GP[o(N1),E(N2),cond,A],p2)E(NE1)
+ 			M[enforcement](p1,GP[o(N1),E(N2),cond,A],p2)E(0)
 				 				C[termination] keep(envir)
 		=> M[enforcement] (empty)E(99)
 				 				C[deadlocka] keep(envir) .
@@ -253,7 +253,7 @@ mod LOOSEMODE is
 		=> 
 			M[loose]D(AP1 & AP(D)[E(N1),tcond,acond,type,o(N2)] & AP2)
 				[A]Reseverse(C)keep(envir) E(N1)
-			if type == Loose /\ tcond == T /\ N2 == 2 /\ N1 =/= 0 .
+			if type == Loose /\ tcond == T /\ N2 == 2 /\ N1 =/= 0 /\ A =/= deadlocka /\ A =/= termination .
 
 	crl [LA2] : 
 			M[loose] C (GP)(AP1 & AP(D)[E(N1),tcond,acond,type,o(N2)] & AP2)
@@ -277,7 +277,7 @@ mod LOOSEMODE is
  		=> 
  			M[loose]D (AP1 & AP(choice[view ? D,D'])[E(N1),tcond,acond,type,o(N2)] & AP2) 
  				Reseverse(C)[A]keep(envir) E(N1)
-   			if judge(view,C') /\ type == Loose /\ tcond == T /\ N1 =/= 0 /\ N2 == 1 /\ A =/= termination .
+   			if judge(view,C') /\ type == Loose /\ tcond == T /\ N1 =/= 0 /\ N2 == 1 /\ A =/= deadlocka /\ A =/= termination .
    
     crl [LA6-complete-rely] : 
     		M[loose] D (GP)(AP1 & AP(choice[view ? D,D'])[E(N1),tcond,acond,type,o(N2)] & AP2)
@@ -301,7 +301,7 @@ mod LOOSEMODE is
  		=> 
  			M[loose]D' (AP1 & AP(choice[view ? D,D'])[E(N1),tcond,acond,type,o(N2)] & AP2)
  				Reseverse(C)[A]keep(envir)E(N1)
- 			if not judge(view,C') /\ type == Loose /\ tcond == T /\ N1 =/= 0 .
+ 			if not judge(view,C') /\ type == Loose /\ tcond == T /\ N1 =/= 0 /\ A =/= deadlocka /\ A =/= termination .
  
     crl [LA7-complete] : 
     		M[loose] D' (GP)(AP1 & AP(choice[view ? D,D'])[E(N1),tcond,acond,type,o(N2)] & AP2)
@@ -320,46 +320,19 @@ mod LOOSEMODE is
 	   	    if acond == envir .
 
 
-	crl [LA3] : 
-			M[loose]C (AP1 & AP(D)[E(N1),tcond,acond,type,o(N2)] & AP2)
-				[A] Reseverse(C') keep(envir)E(NE1)
- 		=> 
- 			M[loose]C (AP1 & AP(D)[E(N1),tcond,acond,type,o(N2)] & AP2) 
- 				[A]Reseverse(C')keep(envir)E(NE1)
- 			if not (acond == ac) .
-
- 	crl [LA3-enforce-nature] : 
- 			M[loose]C(p1,GP[o(N1),E(N2),cond,A],p2)
- 					(AP1 & AP(D)[E(N3),tcond,acond,type,o(N4)] & AP2)
- 					[A']keep(envir)Reseverse(C)E(NE1)
- 		=> 
- 			M[loose]C(p1,GP[o(N1),E(N2),cond,A],p2)
- 				(AP1 & AP(D)[E(N3),tcond,acond,type,o(N4)] & AP2)
- 				[A] keep(set(E(N2)))Reseverse(C)E(N2)
- 			if N2 =/= 0 /\ N1 == 1 /\ cond == True .
-
- 	crl [LA3-enforce-nature-rely] : 
- 			M[loose]C(p1,GP[o(N1),E(N2),cond,A],p2)keep(envir)
- 					(AP1 & AP(D)[E(N1),tcond,acond,type,o(N2)] & AP2)
- 					[A']Reseverse(C) E(NE1)
+	crl [LA3-envir] : 
+			M[loose]C (p1,GP[o(N1),E(N2),cond,A],p2) 
+				(AP1 & AP(D)[E(N3),tcond,acond,type,o(N4)] & AP2)
+				[A'] Reseverse(C') keep(envir)E(NE1)
  		=> 
  			M[loose]C (p1,GP[o(N1),E(N2),cond,A],p2)
- 				(AP1 & AP(D)[E(N1),tcond,acond,type,o(N2)] & AP2)
- 				[A] Reseverse(C)keep(set(E(N2))) E(N2)
- 			if N2 =/= 0 /\ N1 > 1 /\ cond == envir .
-			
+ 				(AP1 & AP(D)[E(N3),tcond,acond,type,o(N4)] & AP2) 
+ 				[A]Reseverse(C')keep(set(E(N2)))E(N2)
+ 			if acond =/= envir /\ A =/= deadlocka /\ A =/= termination 
+ 			/\ N2 =/= 0 /\ N1 == 1 /\ cond == envir .
 
- 	crl [LA3-enforce-person] : 
- 			M[loose](p1,GP[o(N1),E(N2),cond,A],p2)
- 					(AP1 & AP(D)[E(N3),tcond,acond,type,o(N4)] & AP2)
- 					C[A'] keep(envir)Reseverse(C)E(NE1)
- 		=> 
- 			M[loose] (p1,GP[o(N1),E(N2),cond,A],p2)
- 					 (AP1 & AP(D)[E(N3),tcond,acond,type,o(N4)] & AP2)
- 		   			 C[A] keep(envir)Reseverse(C)E(N2)
-		    if cond == envir /\ N1 > 1 /\  N2 =/= 0 /\ A' =/= termination .
 
- ---				 				C[A] keep(envir) .
+ 
  	crl [LA5] :  
  			M[loose] (p1,GP[o(N1),E(N2),cond,A],p2)
  				 				C[A + B] keep(envir)
@@ -411,7 +384,7 @@ mod STRICTMODE is
  		=> 
 			M[strict] D (AP1 & AP(D)[E(N1),tcond,acond,type,o(N2)] & AP2)
 				[termination] Reseverse(C)keep(envir)E(N1)
-			if type == Strict /\ tcond == T /\ N2 == 1 /\ N1 =/= 0 .
+			if type == Strict /\ tcond == T /\ N2 == 1 /\ N1 =/= 0 /\ A =/= deadlocka .
 
 	crl [SA2] : 
 			M[strict]D(GP)(AP1 & AP(D)[E(N1),tcond,acond,type,o(N2)] & AP2)
