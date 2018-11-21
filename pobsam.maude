@@ -8,7 +8,11 @@ fmod ACTION is
 	sort Action .
 	sort Actions .
 
+	sort ActorState .
+
 	op _enf_to_ : Actor Msg AState -> Action [ctor] .
+	op _(_) : Actor AState -> ActorState [ctor] .	
+	op _,_ : ActorState ActorState -> ActorState .
 
 	subsort Action < Actions .
 	op deadlocka : -> Action [ctor] .
@@ -53,8 +57,7 @@ fmod GOVERNP is
 	op GP[_,_,_,_] : Priority Event Condition Action -> GoverningPolicy [ctor] .
 	op _,_ : GoverningPolicys GoverningPolicys -> GoverningPolicys [comm assoc id: empty] .
 
-	op getAction : Event -> Action .
-
+	op ReqActorState : Event -> ActorState .
 endfm
 
 fmod ADAPTIONP is
@@ -114,6 +117,7 @@ mod ENFORCEMENT is
 	op keep : Environment -> System .
 	op [_] : Action -> System .
 	op Reseverse : ConfigurationName -> System .
+	op {_} : ActorState -> System .
 	op __ : System System -> System [assoc comm] .
  	
 --- op u : Factor Action -> U .

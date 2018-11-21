@@ -35,15 +35,15 @@ mod CASE is
 	eq Pv3 = GP[o(2),E(9),vocation,l1 enf setInsentity to d2 || l2 enf setInsentity to d2] .
 
 
-	eq getAction(E(1)) = l1 enf seton to ON || l2 enf seton to ON .
-	eq getAction(E(2)) = l1 enf setoff to OFF || l2 enf setoff to OFF .
-	eq getAction(E(3)) = l1 enf setInsentity to d1 || l2 enf setInsentity to d1 .
-	eq getAction(E(4)) = l1 enf setoff to OFF || l2 enf setoff to OFF .
-	eq getAction(E(5)) = e enf seton to ON .
-	eq getAction(E(6)) = e enf setoff to OFF .
-	eq getAction(E(7)) = l1 enf seton to ON || l2 enf setoff to OFF .
-	eq getAction(E(8)) = l1 enf setoff to OFF || l2 enf seton to ON .
-	eq getAction(E(9)) = l1 enf setInsentity to d2 || l2 enf setInsentity to d2 .
+	eq ReqActorState(E(1)) = l1(ON),l2(ON) .
+	eq ReqActorState(E(2)) = l1(OFF),l2(OFF) .
+	eq ReqActorState(E(3)) = l1(d1),l2(d1) .
+	eq ReqActorState(E(4)) = l1(OFF),l2(OFF) .
+	eq ReqActorState(E(5)) = e(ON) .
+	eq ReqActorState(E(6)) = e(OFF) .
+	eq ReqActorState(E(7)) = l1(ON),l2(OFF) .
+	eq ReqActorState(E(8)) = l1(OFF),l2(ON) .
+	eq ReqActorState(E(9)) = l1(d2),l2(d2) .
 	
 	ops iscnfrmd onVac : -> View .
 
