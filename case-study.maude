@@ -1,0 +1,70 @@
+load pobsam.maude
+mod CASEStudy is
+	protecting STRICTMODE .
+	protecting LOOSEMODE .
+	---define Actor Actorstate Action
+	ops AirP window curtain door TLight WM DM : -> Actor .
+	ops seton setoff setopen setclose : -> Msg .
+	ops open close on off : -> AState .
+	ops dark light smoke nosmoke security : -> Environment .
+
+	---define configuration Cv Cn Cf 
+	ops Cn Cm Cs Ca : -> ConfigurationName .
+
+	---define GoverningPolicy
+	ops Pn1 Pn2 Pn3 Pn4 Pn5 Pn6 : -> GoverningPolicy .
+	ops Pm1 Pm2 Pm3 : -> GoverningPolicy .
+	ops Ps1 Ps2 Ps3 : -> GoverningPolicy .
+	op Pause : -> GoverningPolicy .
+
+	eq Pause = GP[o(0),E(0),True,termination] .
+
+	---Normal Configuration 
+	---curtain enf setopen to open || 
+    eq Pn1 = GP[o(1),E(1),True,TLight enf setoff to off] .
+	eq Pn2 = GP[o(1),E(2),True,curtain enf setclose to close] .
+	eq Pn3 = GP[o(2),E(3),dark,TLight enf seton to on] .
+	eq Pn4 = GP[o(3),E(4),dark,AirP enf seton to on] .
+---	eq Pn5 = GP[o(3),E(5),light,AirP enf seton to on || window enf setopen to open] .
+---	eq Pn6 = GP[o(4),E(6),light,AirP enf setoff to off || window enf setclose to close] .
+
+	---Smoke Configuration
+	eq Pm1 = GP[o(1),E(7),True,door enf setopen to open || window enf setopen to open] .
+	eq Pm2 = GP[o(1),E(8),smoke,door enf setclose to close || window enf setclose to close] .
+
+	---Security Configuration
+	eq Ps1 = GP[o(1),E(9),True,DM enf seton to on || WM enf seton to on] .
+	eq Ps2 = GP[o(2),E(10),security,DM enf setoff to off || WM enf setoff to off] .
+	eq Ps3 = GP[o(3),E(11),security,TLight enf seton to on] .
+
+	op onSecurity : -> View .
+
+	eq set(E(1)) = light .
+	eq set(E(2)) = dark .
+	eq set(E(7)) = smoke .
+	eq set(E(8)) = nosmoke .
+	eq set(E(9)) = security .
+
+	eq ReqAdaptionPolicy(Cn) = AP(Cm)[E(7),T,ac,Strict,o(1)] & AP(Cs)[E(9),T,ac,Loose,o(2)] .
+	eq ReqAdaptionPolicy(Cs) = AP(Cm)[E(7),T,ac,Strict,o(1)] & AP(Cn)[E(12),T,ac,Loose,o(2)] .
+	eq ReqAdaptionPolicy(Cm) = AP(choice[onSecurity ? Cn,Cs])[E(8),T,nosmoke,Loose,o(1)] & AP(Cn)[E(12),T,nosmoke,Loose,o(2)] .
+
+	var C : ConfigurationName .
+	ceq judge(onSecurity,C) = true if C == Cs .
+	ceq judge(onSecurity,C) = false if C == Cn .
+
+	eq ReqGoverningPolicy(Cn) = Pn1,Pn2,Pn3,Pn4,Pn5,Pn6,Pause .
+	eq ReqGoverningPolicy(Cm) = Pm1,Pm2,Pause .
+	eq ReqGoverningPolicy(Cs) = Ps1,Ps2,Ps3,Pause .
+
+	ops initlight initdark : -> System .
+	eq initlight = M[wait](empty)(null)Cn[deadlocka]keep(light)Reseverse(Cn)E(99) .
+	eq initdark = M[wait](empty)(null)Cn[deadlocka]keep(dark)Reseverse(Cn)E(99) .
+
+	op initsmoke : -> System .
+	eq initsmoke = M[wait](empty)(null)Cm[deadlocka]keep(light)Reseverse(Cm)E(99) .
+
+	op initsecurity : -> System .
+	eq initsecurity = M[wait](empty)(null)Cs[deadlocka]keep(light)Reseverse(Cs)E(99) .
+endm
+

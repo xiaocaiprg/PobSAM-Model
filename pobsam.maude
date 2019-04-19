@@ -1,0 +1,438 @@
+fmod ACTION is
+	protecting BOOL .
+
+	sort Actor .
+	sort AState .
+	sort Msg .
+
+	sort Action .
+	sort Actions .
+
+	sort ActorState .
+
+---	op  : Actor AState -> ActorState [ctor] .
+	op _enf_to_ : Actor Msg AState -> Action [ctor] .
+
+	subsort Action < Actions .
+	op deadlocka : -> Action [ctor] .
+	op termination : -> Action [ctor] .
+	op t : -> Action .
+	op _->_ : Action Action -> Action .
+	op _||_ : Action Action -> Action .
+	op _+_ : Action Action -> Action .
+
+	var w : Bool .
+	vars a b : Action .
+	op do[_?_,_] : Bool Action Action -> Action .
+endfm
+
+fmod EVENT is
+	protecting NAT .
+	sort Event .
+	sort View .
+	sort Environment .
+
+	op E : Nat -> Event [ctor] .
+	op set : Event -> Environment .
+
+endfm
+
+fmod GOVERNP is
+	protecting EVENT .
+	protecting ACTION .
+	sort GoverningPolicy .
+	sort GoverningPolicys .
+	subsort GoverningPolicy < GoverningPolicys .
+	sorts Priority Condition .
+	subsort Environment < Condition .
+
+	op o : Nat -> Priority [ctor] .
+	ops True False : -> Condition .
+
+	op empty : -> GoverningPolicys [ctor] .	
+	op GP[_,_,_,_] : Priority Event Condition Action -> GoverningPolicy [ctor] .
+	op _,_ : GoverningPolicys GoverningPolicys -> GoverningPolicys [comm assoc id: empty] .
+
+	op ReqActorState : Event -> ActorState .
+endfm
+
+fmod ADAPTIONP is
+	protecting GOVERNP .
+	protecting BOOL .
+	sort AdaptionPolicy .
+	sort AdaptionPolicys . 
+	sort Configuration .
+	sort ConfigurationName .
+	subsort ConfigurationName < Configuration .
+	subsort AdaptionPolicy < AdaptionPolicys .
+	sorts TCond ACond Type .
+	subsort Environment < ACond .
+
+	op <_;_> : GoverningPolicys AdaptionPolicys -> Configuration [ctor] .
+
+	op ReqConfig : ConfigurationName -> Configuration .
+	op ReqGoverningPolicy : ConfigurationName -> GoverningPolicys .
+	op ReqAdaptionPolicy : ConfigurationName -> AdaptionPolicys .
+
+	op _ND_ : ConfigurationName ConfigurationName -> ConfigurationName .
+	op choice[_?_,_] : View ConfigurationName ConfigurationName -> ConfigurationName .
+
+	ops Loose Strict : -> Type .
+	ops ac nac : -> ACond .
+	ops T F : -> TCond .
+
+	op judge : View ConfigurationName -> Bool .
+
+	op null : -> AdaptionPolicys [ctor] .
+ 	op AP(_)[_,_,_,_,_] : ConfigurationName Event TCond ACond Type Priority -> AdaptionPolicy [ctor] .
+	op _&_ : AdaptionPolicys AdaptionPolicys -> AdaptionPolicys [comm assoc id: null] . 
+
+endfm
+
+fmod MANAGER is
+	sort Manager .
+	sort Mode .
+
+	op wait : -> Mode .
+	op strict : -> Mode .
+	op loose : -> Mode .
+	op enforcement : -> Mode .
+
+	op M[_] : Mode -> Manager .
+endfm
+
+mod ENFORCEMENT is
+	protecting MANAGER .
+	protecting ADAPTIONP .
+	
+---	sorts U Factor .
+	sort System .
+---	subsorts Condition ACond TCond < Factor .
+	subsorts Manager GoverningPolicys ConfigurationName AdaptionPolicys Event < System .
+
+	op keep : Environment -> System .
+	op [_] : Action -> System .
+	op Reseverse : ConfigurationName -> System .
+	op {_} : ActorState -> System .
+	op __ : System System -> System [assoc comm] .
+ 	
+--- op u : Factor Action -> U .
+
+    vars p1 p2 : GoverningPolicys .
+	vars A B A' : Action .
+	vars C C' : ConfigurationName .
+---	var R : GoverningPolicys .
+	var w : Bool .
+	vars N1 N2 N3 N4 : Nat .
+	var NE1 : Nat .
+	var cond : Condition .
+	var actor : Actor .
+	var m : Msg .
+	var astate : AState .
+	var envir : Environment .
+
+ 	rl [NPE1] : 
+ 			M[wait] (empty)(null)C[deadlocka]keep(envir) Reseverse(C') E(99)
+ 		=> 
+ 			M[enforcement] (ReqGoverningPolicy(C))C (ReqAdaptionPolicy(C))E(0)
+ 				 [termination]keep(envir)Reseverse(C') .
+
+---First triggered natural event
+    crl [NPE2-trigger-nature] : 
+    		M[enforcement](p1,GP[o(N1),E(N2),cond,A],p2) E(0)
+    					C[termination]keep(envir)
+    	=>  M[enforcement] (p1,GP[o(N1),E(N2),cond,A],p2) E(N2)
+ 				 		C[A] keep(set(E(N2)))
+		    if cond == True /\  N2 =/= 0 /\ N1 == 1 .
+  
+---Triggered human event
+ 	crl [NPE2-enforce-person] : 
+ 			M[enforcement](p1,GP[o(N1),E(N2),cond,A],p2)E(NE1)
+ 								C[A'] keep(envir)
+ 		=>  M[enforcement](p1,GP[o(N1),E(N2),cond,A],p2)E(N2)
+ 				 				C[A] keep(envir)
+ 			if cond == envir /\ N1 > 1 /\  N2 =/= 0 /\ A' =/= termination .
+
+---Triggered nature event
+    crl [NPE2-enfore-nature] : 
+    		M[enforcement](p1,GP[o(N1),E(N2),cond,A],p2)E(NE1)
+    					C[A']keep(envir)
+    	=>  M[enforcement] (p1,GP[o(N1),E(N2),cond,A],p2)E(N2)
+ 				 		C[A] keep(set(E(N2))) 
+ 			if cond == True /\  N2 =/= 0 /\ N1 == 1 .
+
+---Trigger dependent environment variable event
+ 	crl [NPE2-enfore-nature-rely] : 
+ 			M[enforcement](p1,GP[o(N1),E(N2),cond,A],p2)E(NE1)
+    					C[A']keep(envir)
+   		=>  M[enforcement] (p1,GP[o(N1),E(N2),cond,A],p2)E(N2)
+ 				 		C[A] keep(set(E(N2))) 
+ 			if cond == envir /\  N2 =/= 0 /\ N1 == 1 .		
+
+---Suspend operation
+---	crl [NPE3-pause] : 
+ 	---		M[enforcement] (p1,GP[o(N1),E(N2),cond,A],p2)E(NE1)
+ 		---		 				C[A'] keep(envir)
+ ---		=> M[enforcement] (p1,GP[o(N1),E(N2),cond,A],p2)E(0)
+ 	---			 				C[termination] keep(envir) 
+ 		---	if N2 == 0 /\ cond == True /\ N1 == 0 /\ A == termination /\ A' =/= termination . 
+
+---Non-deterministic choice
+ 	rl [NPE4] : 
+ 			M[enforcement] (p1,GP[o(N1),E(N2),cond,A],p2)
+ 				 				C[A + B] keep(envir)
+		=>  M[enforcement] (p1,GP[o(N1),E(N2),cond,A],p2)
+				 				C[A] keep(envir) .
+
+    crl [NPE5] : 
+    		M[enforcement] (p1,GP[o(N1),E(N2),cond,A],p2)
+ 				 				C[A + B] keep(envir)
+ 		=>  M[enforcement] (p1,GP[o(N1),E(N2),cond,A],p2)
+ 				 				C[B] keep(envir) 
+ 			if A == termination .
+
+---Conditional selection
+ 	crl [NPE6] : 
+ 			M[enforcement] (p1,GP[o(N1),E(N2),cond,A],p2)
+ 								C[do[w ? A,B]] 
+ 		=>  M[enforcement] (p1,GP[o(N1),E(N2),cond,A],p2)
+ 								C[A] 
+ 			if w == true .
+
+	crl [NPE7] : 
+			M[enforcement](p1,GP[o(N1),E(N2),cond,A],p2)
+ 								C[do[w ? A,B]] 
+ 		=>  M[enforcement] (p1,GP[o(N1),E(N2),cond,A],p2) 
+ 								C[B] 
+ 			if w == false .
+
+--- crl [NPE8] : M[enforcement] {p,R} C[A || B] => M[enforcement] {p,R} C[A' || B] if A == A' .
+
+--- rl [NPE10] : M[enforcement] {p,R} C[A -> B] => M[enforcement] {p,R} C[A' -> B] .
+
+---stop	
+--- 	rl [NPE12] : 
+ 	---		M[enforcement](p1,GP[o(N1),E(N2),cond,A],p2)E(0)
+		---		 				C[termination] keep(envir)
+---		=> M[enforcement] (empty)E(99)
+	---			 				C[deadlocka] keep(envir) .
+ 
+endm
+
+mod LOOSEMODE is
+	protecting ENFORCEMENT .
+
+	vars C C' : ConfigurationName .
+	vars D D' : ConfigurationName .	
+	vars A B A' : Action .
+    vars N1 N2 N3 N4 : Nat .
+    var NE1 : Nat .
+
+    var view : View .
+    var cond : Condition .
+    var tcond : TCond .
+    var acond : ACond .
+    var type : Type .
+
+	var GP : GoverningPolicys .
+	vars p1 p2 : GoverningPolicys .
+	vars AP1 AP2 : AdaptionPolicys .
+	var actor : Actor .
+	var m : Msg .
+	var astate : AState .
+	var envir : Environment .
+
+---Switch to Loose Adaption
+	crl [LA1] : 
+			M[enforcement]C(AP1 & AP(D)[E(N1),tcond,acond,type,o(N2)] & AP2)
+				[A] Reseverse(C')keep(envir) E(NE1)
+		=> 
+			M[loose]D(AP1 & AP(D)[E(N1),tcond,acond,type,o(N2)] & AP2)
+				[A]Reseverse(C)keep(envir) E(N1)
+			if type == Loose /\ tcond == T /\ N2 == 2 /\ N1 =/= 0 /\ A =/= deadlocka /\ A =/= termination .
+
+---Complete Loose Adaption and switch to enforcement
+	crl [LA2] : 
+			M[loose] C (GP)(AP1 & AP(D)[E(N1),tcond,acond,type,o(N2)] & AP2)
+				[A] Reseverse(C')keep(envir) E(N1)
+		=> 
+			M[enforcement] (ReqGoverningPolicy(D)) D (ReqAdaptionPolicy(D)) 
+				[termination] Reseverse(C') keep(envir)E(0)
+			if acond == ac .
+
+	crl [LA2-rely-envir] : 
+			M[loose] D (GP)(AP1 & AP(D)[E(N1),tcond,acond,type,o(N2)] & AP2)
+				[A] Reseverse(C')keep(envir)E(N1)
+		=> 
+			M[enforcement] ReqGoverningPolicy(D) D (ReqAdaptionPolicy(D)) 
+				[termination] Reseverse(C') keep(envir)E(0)
+			if acond == envir .
+
+---Conditionally switch to loose mode
+	crl [LA6] :
+			M[enforcement]C(AP1 & AP(choice[view ? D,D'])[E(N1),tcond,acond,type,o(N2)] & AP2) 
+				Reseverse(C')[A]keep(envir)E(NE1)
+ 		=> 
+ 			M[loose]D (AP1 & AP(choice[view ? D,D'])[E(N1),tcond,acond,type,o(N2)] & AP2) 
+ 				Reseverse(C)[A]keep(envir) E(N1)
+   			if judge(view,C') /\ type == Loose /\ tcond == T /\ N1 =/= 0 /\ N2 == 1 /\ A =/= deadlocka /\ A =/= termination .
+   
+    crl [LA6-complete-rely] : 
+    		M[loose] D (GP)(AP1 & AP(choice[view ? D,D'])[E(N1),tcond,acond,type,o(N2)] & AP2)
+    			[A] Reseverse(C')keep(envir) E(N1)
+		=> 
+		    M[enforcement] (ReqGoverningPolicy(D)) D (ReqAdaptionPolicy(D))
+		    	[termination] Reseverse(C') keep(envir)E(0)
+			if acond == envir .
+
+    crl [LA6-complete] : 
+    		M[loose] D (GP)(AP1 & AP(choice[view ? D,D'])[E(N1),tcond,acond,type,o(N2)] & AP2)
+    			[A] Reseverse(C')keep(envir) E(N1)
+		=> 
+		    M[enforcement] (ReqGoverningPolicy(D)) D (ReqAdaptionPolicy(D))
+		    	[termination] Reseverse(C') keep(envir)E(0)
+			if acond == ac .
+
+    crl [LA7] : 
+    		M[enforcement]C(AP1 & AP(choice[view ? D,D'])[E(N1),tcond,acond,type,o(N2)] & AP2) 
+    			Reseverse(C')[A]keep(envir)E(NE1)
+ 		=> 
+ 			M[loose]D' (AP1 & AP(choice[view ? D,D'])[E(N1),tcond,acond,type,o(N2)] & AP2)
+ 				Reseverse(C)[A]keep(envir)E(N1)
+ 			if not judge(view,C') /\ type == Loose /\ tcond == T /\ N1 =/= 0 /\ A =/= deadlocka /\ A =/= termination .
+ 
+    crl [LA7-complete] : 
+    		M[loose] D' (GP)(AP1 & AP(choice[view ? D,D'])[E(N1),tcond,acond,type,o(N2)] & AP2)
+    			[A] Reseverse(C')keep(envir) E(N1)
+		=> 
+		    M[enforcement] (ReqGoverningPolicy(D')) D' (ReqAdaptionPolicy(D'))
+		    	[termination] Reseverse(C') keep(envir)E(0)
+	   	    if acond == ac .
+
+	crl [LA7-complete-rely] : 
+    		M[loose] D' (GP)(AP1 & AP(choice[view ? D,D'])[E(N1),tcond,acond,type,o(N2)] & AP2)
+    			[A] Reseverse(C')keep(envir) E(N1)
+		=> 
+		    M[enforcement] (ReqGoverningPolicy(D')) D' (ReqAdaptionPolicy(D'))
+		    	[termination] Reseverse(C') keep(envir)E(0)
+	   	    if acond == envir .
+
+---Unsatisfied condition cannot be switched to enforcement
+	crl [LA3-enforce-nature-rely] : 
+			M[loose]C (p1,GP[o(N1),E(N2),cond,A],p2) 
+				(AP1 & AP(D)[E(N3),tcond,acond,type,o(N4)] & AP2)
+				[A'] Reseverse(C') keep(envir)E(NE1)
+ 		=> 
+ 			M[loose]C (p1,GP[o(N1),E(N2),cond,A],p2)
+ 				(AP1 & AP(D)[E(N3),tcond,acond,type,o(N4)] & AP2) 
+ 				[A]Reseverse(C')keep(set(E(N2)))E(N2)
+ 			if acond =/= envir /\ A =/= deadlocka /\ A =/= termination 
+ 			/\ N2 =/= 0 /\ N1 == 1 /\ cond == envir .
+
+ 	crl [LA3-enforce-nature] : 
+ 			M[loose]C(p1,GP[o(N1),E(N2),cond,A],p2)
+ 					(AP1 & AP(D)[E(N3),tcond,acond,type,o(N4)] & AP2)
+ 					[A']keep(envir)Reseverse(C)E(NE1)
+ 		=> 
+ 			M[loose]C(p1,GP[o(N1),E(N2),cond,A],p2)
+ 				(AP1 & AP(D)[E(N3),tcond,acond,type,o(N4)] & AP2)
+ 				[A] keep(set(E(N2)))Reseverse(C)E(N2)
+ 		if acond =/= envir /\ A =/= deadlocka /\ A =/= termination 
+ 			/\ N2 =/= 0 /\ N1 == 1 /\ cond == True .
+
+ 	crl [LA3-enforce-person] : 
+ 			M[loose]C(p1,GP[o(N1),E(N2),cond,A],p2)keep(envir)
+ 					(AP1 & AP(D)[E(N1),tcond,acond,type,o(N2)] & AP2)
+ 					[A']Reseverse(C) E(NE1)
+ 		=> 
+ 			M[loose]C (p1,GP[o(N1),E(N2),cond,A],p2)
+ 				(AP1 & AP(D)[E(N1),tcond,acond,type,o(N2)] & AP2)
+ 				[A] Reseverse(C)keep(envir) E(N2)
+ 		if acond =/= envir /\ A =/= deadlocka /\ A =/= termination 
+ 			/\ N2 =/= 0 /\ N1 > 1 /\ cond == envir .
+			
+
+ 	crl [LA5] :  
+ 			M[loose] (p1,GP[o(N1),E(N2),cond,A],p2)
+ 				 				C[A + B] keep(envir)
+   	    => 
+   	    	M[loose] (p1,GP[o(N1),E(N2),cond,A],p2)
+ 				 				C[B] keep(envir) 
+ 		 	if A == termination .
+ 
+ ---	rl [LA8] : M[loose] C[A || B] => M[loose] C[A' || B] .
+ 	crl [LA9] :  
+ 			M[loose] (p1,GP[o(N1),E(N2),cond,A],p2)
+ 				 				C[A || B] keep(envir)
+    	=> 
+    		M[loose] (p1,GP[o(N1),E(N2),cond,A],p2)
+ 				 				C[B] keep(envir) 
+ 		 	if A == termination .
+--- 	rl [LA10] : M[loose] C[A -> B] => M[loose] C[A' -> B] .
+  	crl [LA11] : 
+  			M[loose] (p1,GP[o(N1),E(N2),cond,A],p2)
+ 				 				C[A -> B] keep(envir)
+   	    => 
+   	    	M[loose] (p1,GP[o(N1),E(N2),cond,A],p2)
+ 				 				C[B] keep(envir) 
+ 		 	if A == termination .
+
+
+endm
+
+mod STRICTMODE is
+	protecting ENFORCEMENT .
+
+	vars AP1 AP2 : AdaptionPolicys .
+	vars N1 N2 : Nat .
+	var NE1 : Nat .
+
+	var A : Action .
+	var GP : GoverningPolicys .
+	vars C C' : ConfigurationName .
+	vars D D' : ConfigurationName .
+	var tcond : TCond .
+	var view : View .
+	var acond : ACond .
+	var type : Type .
+	var envir : Environment .
+
+---Switch to Strict Adaption
+ 	crl [SA1] : 
+ 			M[enforcement] C (AP1 & AP(D)[E(N1),tcond,acond,type,o(N2)] & AP2)
+ 				[A]Reseverse(C')keep(envir) E(NE1)
+ 		=> 
+			M[strict] D (AP1 & AP(D)[E(N1),tcond,acond,type,o(N2)] & AP2)
+				[termination] Reseverse(C)keep(envir)E(N1)
+			if type == Strict /\ tcond == T /\ N2 == 1 /\ N1 =/= 0 /\ A =/= deadlocka .
+
+---Complete Strict Adaption
+	crl [SA2] : 
+			M[strict]D(GP)(AP1 & AP(D)[E(N1),tcond,acond,type,o(N2)] & AP2)
+				[termination]keep(envir)Reseverse(C') E(NE1)
+		=> 
+			M[enforcement](ReqGoverningPolicy(D))D(ReqAdaptionPolicy(D))
+				[termination] Reseverse(C') keep(envir) E(0)
+			if acond == ac .
+
+ ---	rl [SA3] : M[wait] < P ; AP1 + AP2 >  => M[wait] < P ; AP2 + AP1 > .
+
+	rl [SA4] : 
+			M[strict] (AP1 & AP(D ND D')[E(N1),tcond,acond,type,o(N2)] & AP2) 
+		=> 
+			M[strict] (AP1 & AP(D')[E(N1),tcond,acond,type,o(N2)] & AP2) .
+
+	crl [SA6] : 
+			M[strict]C(AP1 & AP(choice[view ? D,D'])[E(N1),tcond,acond,type,o(N2)] & AP2) Reseverse(C')
+ 		=> 
+ 			M[strict]D(AP1 & AP(D)[E(N1),tcond,acond,Strict,o(N2)] & AP2)Reseverse(C)
+ 			if judge(view,C') /\ type == Strict /\ tcond == T .
+
+	crl [SA7] : 
+			M[strict]C(AP1 & AP(choice[view ? D,D'])[E(N1),tcond,acond,type,o(N2)] & AP2) Reseverse(C')
+ 		=> 
+ 			M[strict]D'(AP1 & AP(D')[E(N1),tcond,acond,Strict,o(N2)] & AP2)Reseverse(C)
+ 			if not judge(view,C') /\ type == Strict /\ tcond == T .
+
+endm
+
