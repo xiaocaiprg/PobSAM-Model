@@ -1,0 +1,47 @@
+init->E(4)：
+search init =>* Ch M[enforcement]E(4)keep(light)Reseverse(Ch)
+[Sensor . switchon]
+(GP[on E(0) if True do termination priority o(0)],
+ GP[on E(1) if True do Light . switchoff || Curtain . switchon priority o(1)],
+ GP[on E(2) if light do Airpurify . switchon || Music . switchon priority o(2)],
+ GP[on E(3) if light do Heater . switchon priority o(3)],
+ GP[on E(4) if light do Sensor . switchon priority o(4)],
+ GP[on E(5) if True do Light . switchon || Curtain . switchoff priority o(1)]
+ )
+(AP[Strict on E(6) if T switchto Cr when ac priority o(1)] & AP[Loose on E(10) if T switchto Cd when dark priority o(2)] & AP[Loose on E(13) if T switchto Cv when ac priority o(3)]
+){(Sensor : on)} .
+
+init->E(5)：
+search init =>* Ch M[enforcement]E(5)keep(dark)Reseverse(Ch)
+[Light . switchon || Curtain . switchoff]
+(GP[on E(0) if True do termination priority o(0)],
+ GP[on E(1) if True do Light . switchoff || Curtain . switchon priority o(1)],
+ GP[on E(2) if light do Airpurify . switchon || Music . switchon priority o(2)],
+ GP[on E(3) if light do Heater . switchon priority o(3)],
+ GP[on E(4) if light do Sensor . switchon priority o(4)],
+ GP[on E(5) if True do Light . switchon || Curtain . switchoff priority o(1)]
+ )
+(AP[Strict on E(6) if T switchto Cr when ac priority o(1)] & AP[Loose on E(10) if T switchto Cd when dark priority o(2)] & AP[Loose on E(13) if T switchto Cv when ac priority o(3)]
+){(Light : on)(Curtain : off)} .
+
+Adaption
+Ch->Cr
+search init =>* Cr M[enforcement]E(7)keep(safety)Reseverse(Ch)
+[Alarm . switchon]
+( GP[on E(0) if True do termination priority o(0)],
+  GP[on E(6) if True do Linkage . switchon || Camera . switchon priority o(1)],
+  GP[on E(7) if safety do Alarm . switchon priority o(2)],
+  GP[on E(8) if safety do Linkage . switchoff priority o(3)],
+  GP[on E(9) if safety do Curtain . switchoff priority o(3)])
+(AP[Loose on E(16) if T switchto Ch when ac priority o(2)]) 
+{(Alarm : on)} .
+
+Ch->Cd
+search init =>* Cd M[enforcement]E(10)keep(night)Reseverse(Ch)
+[Light . switchoff || Curtain . switchoff]
+( GP[on E(0) if True do termination priority o(0)],
+  GP[on E(10) if True do Light . switchoff || Curtain . switchoff priority o(1)],
+  GP[on E(11) if night do Mattress . switchon priority o(2)],
+  GP[on E(12) if night do Mattress . switchoff priority o(3)])
+(AP[Loose on E(2) if T switchto Ch when dark priority o(2)]) 
+{(Light : off)(Curtain : off)} .

@@ -1,0 +1,166 @@
+initlight->E(5)：
+search initlight =>* Cn M[enforcement]E(5)keep(light)Reseverse(Cn)
+[Airpurifier . switchon || Window . setopen]
+(GP[on E(0) if True do termination priority o(0)],
+  GP[on E(1) if True do Light . switchoff || Curtain . setopen priority o(1)],
+  GP[on E(2) if True do Curtain . setclose priority o(1)],
+  GP[on E(3) if dark do Light . switchon priority o(2)],
+  GP[on E(4) if dark do Airpurifier . switchon priority o(3)],
+  GP[on E(5) if light do Airpurifier . switchon || Window . setopen priority o(4)],
+  GP[on E(6) if light do Airpurifier . switchoff || Window . setclose priority o(4)]
+ )
+(AP[Strict on E(7) if T switchto Cm when ac priority o(1)] & AP[Loose on E(9) if T switchto Cs when ac priority o(2)]
+){(Airpurifier : on)(Window : open)} .
+
+initlight->E(3)：
+search initlight =>* Cn M[enforcement]E(3)keep(light)Reseverse(Cn)
+[Light . switchon]
+(GP[on E(0) if True do termination priority o(0)],
+  GP[on E(1) if True do Light . switchoff || Curtain . setopen priority o(1)],
+  GP[on E(2) if True do Curtain . setclose priority o(1)],
+  GP[on E(3) if True do Light . switchon priority o(1)],
+  GP[on E(4) if dark do Airpurifier . switchon priority o(3)],
+  GP[on E(5) if light do Airpurifier . switchon || Window . setopen priority o(4)],
+  GP[on E(6) if light do Airpurifier . switchoff || Window . setclose priority o(4)]
+ )
+(AP[Strict on E(7) if T switchto Cm when ac priority o(1)] & AP[Loose on E(9) if T switchto Cs when ac priority o(2)]
+){(Light : on)} .
+
+initsmoke->E(8):
+search initsmoke =>* Cm M[enforcement]E(8)keep(nosmoke)Reseverse(Cm)
+[Elight . switchoff || Window . setclose]
+(	GP[on E(0) if True do termination priority o(0)],
+	GP[on E(7) if True do Elight . switchon -> Window . setopen priority o(1)],
+	GP[on E(8) if smoke do Elight . switchoff || Window . setclose priority o(1)]
+)
+(AP[Loose on E(8) if T switchto choice[onSecurity ? Cn,Cs] when nosmoke priority o(1)] & AP[Loose on E(12) if T switchto Cn when nosmoke priority o(2)]) 
+{(Elight : off) (Window : close)} .
+
+
+initsecurity->E(11)
+search initsecurity =>* Cs M[enforcement]E(11)keep(security)Reseverse(Cs)
+[Elight . switchon]
+(GP[on E(0) if True do termination priority o(0)],
+GP[on E(9) if True do DoorSecurity . seton || WinSecurity . seton priority o(1)],
+GP[on E(10) if security do DoorSecurity . setoff || WinSecurity . setoff priority o(2)],
+GP[on E(11) if security do Elight . switchon priority o(3)]
+)
+(AP[Strict on E(7) if T switchto Cm when ac priority o(1)] & AP[Loose on E(12) if T switchto Cn when ac priority o(2)]) 
+{(Elight : on)} .
+
+
+Adaption
+Cn->Cm
+search initlight =>* Cm M[enforcement]E(8)keep(nosmoke)Reseverse(Cn)
+[Elight . switchoff || Window . setclose]
+(	GP[on E(0) if True do termination priority o(0)],
+	GP[on E(7) if True do Elight . switchon -> Window . setopen priority o(1)],
+	GP[on E(8) if smoke do Elight . switchoff || Window . setclose priority o(1)]
+)
+(AP[Loose on E(8) if T switchto choice[onSecurity ? Cn,Cs] when nosmoke priority o(1)] & AP[Loose on E(12) if T switchto Cn when nosmoke priority o(2)]) 
+{(Elight : off) (Window : close)} .
+
+
+Cn->Cs
+search initlight =>* Cs M[enforcement]E(11)keep(security)Reseverse(Cn)
+[Elight . switchon]
+(GP[on E(0) if True do termination priority o(0)],
+GP[on E(9) if True do DoorSecurity . seton || WinSecurity . seton priority o(1)],
+GP[on E(10) if security do DoorSecurity . setoff || WinSecurity . setoff priority o(2)],
+GP[on E(11) if security do Elight . switchon priority o(3)]
+)
+(AP[Strict on E(7) if T switchto Cm when ac priority o(1)] & AP[Loose on E(12) if T switchto Cn when ac priority o(2)]) 
+{(Elight : on)} .
+
+Cn->Cm->Cn
+search initlight =>* Cn M[enforcement]E(3)keep(dark)Reseverse(Cm)
+[Light . switchon]
+(GP[on E(0) if True do termination priority o(0)],
+  GP[on E(1) if True do Light . switchoff || Curtain . setopen priority o(1)],
+  GP[on E(2) if True do Curtain . setclose priority o(1)],
+  GP[on E(3) if dark do Light . switchon priority o(2)],
+  GP[on E(4) if dark do Airpurifier . switchon priority o(3)],
+  GP[on E(5) if light do Airpurifier . switchon || Window . setopen priority o(4)],
+  GP[on E(6) if light do Airpurifier . switchoff || Window . setclose priority o(4)]
+ )
+(AP[Strict on E(7) if T switchto Cm when ac priority o(1)] & AP[Loose on E(9) if T switchto Cs when ac priority o(2)]
+){(Light : on)}  .
+
+Cs->Cm
+search initsecurity =>* Cm M[enforcement]E(8)keep(nosmoke)Reseverse(Cs)
+[Elight . switchoff || Window . setclose]
+(	GP[on E(0) if True do termination priority o(0)],
+	GP[on E(7) if True do Elight . switchon -> Window . setopen priority o(1)],
+	GP[on E(8) if smoke do Elight . switchoff || Window . setclose priority o(1)]
+)
+(AP[Loose on E(8) if T switchto choice[onSecurity ? Cn,Cs] when nosmoke priority o(1)] & AP[Loose on E(12) if T switchto Cn when nosmoke priority o(2)]) 
+{(Elight : off) (Window : close)} .
+
+Cs->Cm->Cs
+search initsecurity =>* Cs M[enforcement]E(11)keep(security)Reseverse(Cm)
+[Elight . switchon]
+(GP[on E(0) if True do termination priority o(0)],
+GP[on E(9) if True do DoorSecurity . seton || WinSecurity . seton priority o(1)],
+GP[on E(10) if security do DoorSecurity . setoff || WinSecurity . setoff priority o(2)],
+GP[on E(11) if security do Elight . switchon priority o(3)]
+)
+(AP[Strict on E(7) if T switchto Cm when ac priority o(1)] & AP[Loose on E(12) if T switchto Cn when ac priority o(2)]) 
+{(Elight : on)} .
+
+【
+NPE1
+SA1
+SA2
+NPE2-trigger-nature
+NPE2-enfore-nature-rely
+LA6
+LA6-complete-rely
+NPE2-trigger-nature
+NPE2-enforce-person
+】
+
+Cn->Cm->Cs
+search initlight =>* Cs M[enforcement]E(11)keep(security)Reseverse(Cm)
+[Elight . switchon]
+(GP[on E(0) if True do termination priority o(0)],
+GP[on E(9) if True do DoorSecurity . seton || WinSecurity . seton priority o(1)],
+GP[on E(10) if security do DoorSecurity . setoff || WinSecurity . setoff priority o(2)],
+GP[on E(11) if security do Elight . switchon priority o(3)]
+)
+(AP[Strict on E(7) if T switchto Cm when ac priority o(1)] & AP[Loose on E(12) if T switchto Cn when ac priority o(2)]) 
+{(Elight : on)} .
+
+【
+NPE1
+NPE2-trigger-nature
+LA1
+LA2
+SA1
+SA2
+NPE2-trigger-nature
+NPE2-enfore-nature-rely
+LA6
+LA6-complete-rely
+NPE2-trigger-nature
+NPE2-enforce-person
+】
+
+Cn->Cm->Cn
+search initlight =>*
+Cn M[enforcement]E(5)keep(light)Reseverse(Cm)
+[Airpurifier . switchon || Window . setopen]
+(GP[on E(0) if True do termination priority o(0)],
+  GP[on E(1) if True do Light . switchoff || Curtain . setopen priority o(1)],
+  GP[on E(2) if True do Curtain . setclose priority o(1)],
+  GP[on E(3) if dark do Light . switchon priority o(2)],
+  GP[on E(4) if dark do Airpurifier . switchon priority o(3)],
+  GP[on E(5) if light do Airpurifier . switchon || Window . setopen priority o(4)],
+  GP[on E(6) if light do Airpurifier . switchoff || Window . setclose priority o(4)]
+ )
+(AP[Strict on E(7) if T switchto Cm when ac priority o(1)] & AP[Loose on E(9) if T switchto Cs when ac priority o(2)]
+){(Airpurifier : on)(Window : open)} .
+
+
+
+
+

@@ -1,0 +1,142 @@
+load newpobsam.maude
+mod CASE2 is
+---	protecting ENFORCEMENT .
+	protecting STRICTMODE .
+	protecting LOOSEMODE .
+	---define Actor Actorstate Action
+	ops on off : -> V .
+	ops switchon switchoff : -> Msgsrv .
+
+	op Light : -> Actor .
+	op LightState : -> Statevars .
+	op ACTR1 : -> ACTR .
+	eq ACTR1 = Actor(Light){statevars{LightState} ; msgsrv(switchon) msgsrv(switchoff)} .
+
+	op Curtain : -> Actor .
+	op CurState : -> Statevars .
+	op ACTR2 : -> ACTR .
+	eq ACTR2 = Actor(Curtain){statevars{CurState} ; msgsrv(switchon) msgsrv(switchoff)} .
+
+	op Airpurify : -> Actor .
+	op AirState : -> Statevars .
+	op ACTR3 : -> ACTR .
+	eq ACTR3 = Actor(Airpurify){statevars{AirState} ; msgsrv(switchon) msgsrv(switchoff)} .
+
+	op Music : -> Actor .
+	op MusicState : -> Statevars .
+	op ACTR4 : -> ACTR .
+	eq ACTR4 = Actor(Music){statevars{MusicState} ; msgsrv(switchon) msgsrv(switchoff)} .
+
+	op Sensor : -> Actor .
+	op SenState : -> Statevars .
+	op ACTR5 : -> ACTR .
+	eq ACTR5 = Actor(Sensor){statevars{SenState} ; msgsrv(switchon) msgsrv(switchoff)} .
+
+	op Heater : -> Actor .
+	op HeaterState : -> Statevars .
+	op ACTR6 : -> ACTR .
+	eq ACTR6 = Actor(Heater){statevars{HeaterState} ; msgsrv(switchon) msgsrv(switchoff)} .
+
+
+	op Linkage : -> Actor .
+	op LinState : -> Statevars .
+	op ACTR7 : -> ACTR .
+	eq ACTR7 = Actor(Linkage){statevars{LinState} ; msgsrv(switchon) msgsrv(switchoff)} .
+
+	op Camera : -> Actor .
+	op CamState : -> Statevars .
+	op ACTR8 : -> ACTR .
+	eq ACTR8 = Actor(Camera){statevars{CamState} ; msgsrv(switchon) msgsrv(switchoff)} .
+
+	op Alarm : -> Actor .
+	op AlarmState : -> Statevars .
+	op ACTR8 : -> ACTR .
+	eq ACTR8 = Actor(Alarm){statevars{AlarmState} ; msgsrv(switchon) msgsrv(switchoff)} .
+
+	op Mattress : -> Actor .
+	op MaState : -> Statevars .
+	op ACTR9 : -> ACTR .
+	eq ACTR9 = Actor(Mattress){statevars{MaState} ; msgsrv(switchon) msgsrv(switchoff)} .
+
+	---define configuration Cn Cm Cs 
+	ops Cr Ch Cv Cd : -> ConfigurationName .
+
+	ops light safety night vocation dark : -> Environment .
+
+	op allvstate : -> VState .
+	
+	---define configuration Cn Cm Cs 
+	ops Ph1 Ph2 Ph3 Ph4 Ph5 : -> GoverningPolicy .
+	ops Pr1 Pr2 Pr3 Pr4 : -> GoverningPolicy .
+	ops Pd1 Pd2 Pd3 : -> GoverningPolicy .
+	ops Pv1 Pv2 Pv3 : -> GoverningPolicy .
+	op Pause : -> GoverningPolicy .
+
+	eq Pause = GP[on E(0) if True do termination priority o(0)] .
+
+	---Home Configuration 
+    eq Ph1 = GP[on E(1) if True do Light . switchoff || Curtain . switchon priority o(1)] .
+    eq Ph2 = GP[on E(2) if light do Airpurify . switchon || Music . switchon priority o(2)] .
+    eq Ph3 = GP[on E(3) if light do Heater . switchon priority o(3)] .
+    eq Ph4 = GP[on E(4) if light do Sensor . switchon priority o(4)] .
+    eq Ph5 = GP[on E(5) if True do Light . switchon || Curtain . switchoff priority o(1)] .
+    eq ReqGoverningPolicies(Ch) = Ph1,Ph2,Ph3,Ph4,Ph5,Pause .
+
+
+    eq execute(Light . switchoff || Curtain . switchon)= (Light : off) (Curtain : on) .
+    eq execute(Airpurify . switchon || Music . switchon) = (Airpurify : on)(Music : on) .
+    eq execute(Heater . switchon) = (Heater : on) .
+    eq execute(Sensor . switchon) = (Sensor : on) .
+    eq execute(Light . switchon || Curtain . switchoff) = (Light : on) (Curtain : off) . 
+
+ 	eq ReqAdaptionPolicies(Ch)= AP[Strict on E(6) if T switchto Cr when ac priority o(1)] & AP[Loose on E(10) if T switchto Cd when dark priority o(2)] & AP[Loose on E(13) if T switchto Cv when ac priority o(3)] .
+ 
+    ---romote configuration
+    eq Pr1 = GP[on E(6) if True do Linkage . switchon || Camera . switchon priority o(1)] .
+    eq Pr2 = GP[on E(7) if safety do Alarm . switchon priority o(2)] .
+    eq Pr3 = GP[on E(8) if safety do Linkage . switchoff priority o(3)] .
+    eq Pr4 = GP[on E(9) if safety do Curtain . switchoff priority o(3)] .
+    eq ReqGoverningPolicies(Cr) = Pr1,Pr2,Pr3,Pr4,Pause .
+
+    eq execute(Linkage . switchon || Camera . switchon) = (Linkage : on)(Camera : on) .
+    eq execute(Alarm . switchon) = (Alarm : on) .
+    eq execute(Linkage . switchoff) = (Linkage : off) .
+    eq execute(Curtain . switchoff) = (Curtain : off) .
+
+    eq ReqAdaptionPolicies(Cr) = AP[Loose on E(16) if T switchto Ch when ac priority o(2)] .
+
+    ---dark configuration
+    eq Pd1 = GP[on E(10) if True do Light . switchoff || Curtain . switchoff priority o(1)] .
+    eq Pd2 = GP[on E(11) if night do Mattress . switchon priority o(2)] .
+    eq Pd3 = GP[on E(12) if night do Mattress . switchoff priority o(3)] .
+    eq ReqGoverningPolicies(Cd) = Pd1,Pd2,Pd3,Pause .
+
+    eq execute(Light . switchoff || Curtain . switchoff) = (Light : off)(Curtain : off) .
+    eq execute(Mattress . switchon) = (Mattress : on) .
+    eq execute(Mattress . switchoff) = (Mattress : off) .
+
+    eq ReqAdaptionPolicies(Cd) = AP[Loose on E(2) if T switchto Ch when dark priority o(2)] .
+
+    ---vocation configuration
+    eq Pv1 = GP[on E(13) if True do Light . switchoff || Alarm . switchon priority o(1)] .
+    eq Pv2 = GP[on E(14) if vocation do Camera . switchon priority o(2)] .
+    eq Pv3 = GP[on E(15) if vocation do Camera . switchoff || Alarm . switchoff priority o(3)] .
+    eq ReqGoverningPolicies(Cv) = Pv1,Pv2,Pv3,Pause .
+    eq execute(Light . switchoff || Alarm . switchon) = (Light : off)(Alarm : on) .
+    eq execute(Camera . switchon) = (Camera : on) .
+    eq execute(Camera . switchoff) = (Camera : off) .
+ 	
+ 	eq ReqAdaptionPolicies(Cv) = AP[Loose on E(16) if T switchto Ch when ac priority o(2)] & AP[Strict on E(6) if T switchto Cr when ac priority o(2)] .
+	eq set(E(1)) = light .
+---	eq set(E(3)) = light .
+	eq set(E(5)) = dark .
+	eq set(E(6)) = safety .
+	eq set(E(10)) = night .
+	eq set(E(13)) = vocation .
+
+	op init : -> System .
+	eq init = M[wait](empty)(null)Ch[deadlocka]keep(light)E(99){allvstate}Reseverse(Ch) .
+ 
+
+endm
+

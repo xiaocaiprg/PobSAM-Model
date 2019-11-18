@@ -1,0 +1,136 @@
+load newpobsam.maude
+mod CASE1 is
+---	protecting ENFORCEMENT .
+	protecting STRICTMODE .
+	protecting LOOSEMODE .
+	---define Actor Actorstate Action
+	op Light : -> Actor .
+	op LightState : -> Statevars .
+	ops on off : -> V .
+	ops switchon switchoff : -> Msgsrv .
+	op ACTR1 : -> ACTR .
+	eq ACTR1 = Actor(Light){statevars{LightState} ; msgsrv(switchon) msgsrv(switchoff)} .
+
+	op Elight : -> Actor .
+	op ELightState : -> Statevars .
+	op ACTR1 : -> ACTR .
+	eq ACTR1 = Actor(Elight){statevars{ELightState} ; msgsrv(switchon) msgsrv(switchoff)} .
+
+	op Window : -> Actor .
+	op WinState : -> Statevars .
+	ops open close : -> V .
+	ops setopen setclose : -> Msgsrv .
+	op ACTR2 : -> ACTR .
+	eq ACTR2 = Actor(Window){statevars{WinState} ; msgsrv(setopen) msgsrv(setclose)} .
+
+
+	op Curtain : -> Actor .
+	op CurState : -> Statevars .
+	op ACTR3 : -> ACTR .
+	eq ACTR3 = Actor(Curtain){statevars{CurState} ; msgsrv(setopen) msgsrv(setclose)} .
+
+
+	op Door : -> Actor .
+	op DoorState : -> Statevars .
+	op ACTR4 : -> ACTR .
+	eq ACTR4 = Actor(Door){statevars{DoorState} ; msgsrv(setopen) msgsrv(setclose)} .
+
+
+	op Airpurifier : -> Actor .
+	op AirState : -> Statevars .
+	op ACTR5 : -> ACTR .
+	eq ACTR5 = Actor(Airpurifier){statevars{AirState} ; msgsrv(switchon) msgsrv(switchoff)} .
+
+
+	op DoorSecurity : -> Actor .
+	op DSState : -> Statevars .
+	op ACTR6 : -> ACTR .
+	ops seton setoff : -> Msgsrv .
+	eq ACTR6 = Actor(DoorSecurity){statevars{DSState} ; msgsrv(seton) msgsrv(setoff)} .
+
+
+	op WinSecurity : -> Actor .
+	op WSState : -> Statevars .
+	op ACTR7 : -> ACTR .
+	eq ACTR7 = Actor(WinSecurity){statevars{WSState} ; msgsrv(seton) msgsrv(setoff)} .
+
+	---define configuration Cn Cm Cs 
+	ops Cn Cm Cs : -> ConfigurationName .
+
+	ops dark light smoke nosmoke security : -> Environment .
+
+	op allvstate : -> VState .
+	op onSecurity : -> View .
+
+	---define configuration Cn Cm Cs 
+	ops Pn1 Pn2 Pn3 Pn4 Pn5 Pn6 : -> GoverningPolicy .
+	ops Pm1 Pm2 Pm3 : -> GoverningPolicy .
+	ops Ps1 Ps2 Ps3 : -> GoverningPolicy .
+	op Pause : -> GoverningPolicy .
+
+	eq Pause = GP[on E(0) if True do termination priority o(0)] .
+
+	---Normal Configuration 
+    eq Pn1 = GP[on E(1) if True do Light . switchoff || Curtain . setopen priority o(1)] .
+    eq Pn2 = GP[on E(2) if True do Curtain . setclose priority o(1)] .
+    eq Pn3 = GP[on E(3) if dark do Light . switchon priority o(2)] .
+    eq Pn4 = GP[on E(4) if dark do Airpurifier . switchon priority o(3)] .
+    eq Pn5 = GP[on E(5) if light do Airpurifier . switchon || Window . setopen priority o(4)] .
+    eq Pn6 = GP[on E(6) if light do Airpurifier . switchoff || Window . setclose priority o(4)] .
+    eq ReqGoverningPolicies(Cn) = Pn1,Pn2,Pn3,Pn4,Pn5,Pn6,Pause .
+---    eq ReqAdaptionPolicies(Cn) = null .
+    eq execute(Light . switchoff || Curtain . setopen)= (Light : off) (Curtain : open) .
+    eq execute(Curtain . setclose) = (Curtain : close) .
+    eq execute(Light . switchon) = (Light : on) .
+    eq execute(Airpurifier . switchon) = (Airpurifier : on) .
+    eq execute(Airpurifier . switchon || Window . setopen) = (Airpurifier : on) (Window : open) .
+    eq execute(Airpurifier . switchoff || Window . setclose) = (Airpurifier : off) (Window : close) .
+
+	eq ReqAdaptionPolicies(Cn) = AP[Strict on E(7) if T switchto Cm when ac priority o(1)] & AP[Loose on E(9) if T switchto Cs when ac priority o(2)] .
+	
+---Smoke Configuration
+	eq Pm1 = GP[on E(7) if True do Elight . switchon -> Window . setopen priority o(1)] .
+	eq Pm2 = GP[on E(8) if smoke do Elight . switchoff || Window . setclose priority o(1)] .
+	eq ReqGoverningPolicies(Cm) = Pm1,Pm2,Pause .
+	
+	eq execute(Elight . switchon -> Window . setopen) = (Elight : on) (Window : open) .
+	eq execute(Elight . switchoff || Window . setclose) = (Elight : off) (Window : close) .
+
+	eq ReqAdaptionPolicies(Cm) =  AP[Loose on E(8) if T switchto choice[onSecurity ? Cn,Cs] when nosmoke priority o(1)] & AP[Loose on E(12) if T switchto Cn when nosmoke priority o(2)] .
+
+
+	---Security Configuration
+	eq Ps1 = GP[on E(9) if True do DoorSecurity . seton || WinSecurity . seton priority o(1)] .
+	eq Ps2 = GP[on E(10) if security do DoorSecurity . setoff || WinSecurity . setoff priority o(2)] .
+	eq Ps3 = GP[on E(11) if security do Elight . switchon priority o(3)] .
+	eq ReqGoverningPolicies(Cs) = Ps1,Ps2,Ps3,Pause .
+	eq execute(DoorSecurity . seton || WinSecurity . setopen)=(DoorSecurity : on) (WinSecurity : on) .
+	eq execute(DoorSecurity . setoff || WinSecurity . setoff) = (DoorSecurity : off) (WinSecurity : off) .
+	eq execute(Elight . switchon)= (Elight : on) .
+	eq ReqAdaptionPolicies(Cs) = AP[Strict on E(7) if T switchto Cm when ac priority o(1)] & AP[Loose on E(12) if T switchto Cn when ac priority o(2)] .
+	
+
+	eq set(E(1)) = light .
+---	eq set(E(3)) = light .
+	eq set(E(2)) = dark .
+	eq set(E(7)) = smoke .
+	eq set(E(8)) = nosmoke .
+	eq set(E(9)) = security .
+
+
+	var C : ConfigurationName .
+	ceq judge(onSecurity,C) = true if C == Cs .
+	ceq judge(onSecurity,C) = false if C == Cn .
+
+
+    op initlight : -> System .
+	eq initlight = M[wait](empty)(null)Cn[deadlocka]keep(light)E(99){allvstate}Reseverse(Cn) .
+
+	op initsmoke : -> System .
+	eq initsmoke = M[wait](empty)(null)Cm[deadlocka]keep(light)Reseverse(Cm)E(99){allvstate} .
+
+	op initsecurity : -> System .
+	eq initsecurity = M[wait](empty)(null)Cs[deadlocka]keep(light)Reseverse(Cs)E(99){allvstate} .
+
+endm
+
